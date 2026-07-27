@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pick Your Number</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap');
+
+:root{
+  --pitch:#0E3324; --pitch-deep:#092018; --chalk:#EEF3EC; --kit:#FFFFFF; --ink:#0B1F16;
+  --taken:#9DB0A5; --signal:#F94D00; --signal-dim:#C43D02; --line:rgba(238,243,236,.16); --radius:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, transparent 1px 96px),
+    linear-gradient(170deg,var(--pitch) 0%, var(--pitch-deep) 100%);
+  background-attachment:fixed; color:var(--chalk);
+  font-family:'Barlow',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  font-size:16px; line-height:1.5; min-height:100vh; padding:28px 18px 64px;
+}
+.wrap{max-width:960px;margin:0 auto}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  border-bottom:2px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+.eyebrow{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.22em;
+  font-size:13px;color:var(--signal);margin:0 0 4px}
+h1{font-family:'Oswald',Impact,sans-serif;font-weight:600;font-size:clamp(30px,6.5vw,46px);
+  line-height:1;margin:0;text-transform:uppercase}
+.tally{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.12em;
+  font-size:14px;color:var(--taken);white-space:nowrap}
+.tally b{color:var(--chalk);font-weight:600}
+.claim{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;margin-bottom:14px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+label.help{grid-column:1/-1;font-size:14px;color:var(--taken);margin:0 0 -4px}
+label.help b{color:var(--chalk);font-weight:600}
+input[type=text]{width:100%;background:var(--pitch-deep);border:1.5px solid var(--line);border-radius:8px;
+  color:var(--chalk);font-family:'Barlow',sans-serif;font-size:18px;padding:13px 14px}
+input[type=text]::placeholder{color:rgba(238,243,236,.35)}
+input:focus,button:focus-visible,.tile:focus-visible{outline:3px solid var(--signal);outline-offset:3px;border-radius:6px}
+button{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.1em;
+  font-weight:600;font-size:16px;background:var(--signal);color:#fff;border:0;border-radius:8px;
+  padding:14px 22px;cursor:pointer}
+button:hover{background:var(--signal-dim)}
+button[disabled]{background:#3B4E44;color:#8DA096;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--chalk);border:1.5px solid var(--line);padding:9px 14px;font-size:14px}
+button.ghost:hover{background:rgba(255,255,255,.07)}
+.note{min-height:22px;font-size:15px;margin:0 0 22px;padding-left:2px}
+.note.err{color:#FF9C6B}
+.note.ok{color:#8FE3B0}
+
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:12px 10px}
+.tile{background:none;border:0;padding:0;margin:0;display:block;width:100%;transition:transform .14s ease}
+.tile svg{width:100%;display:block;overflow:visible}
+.tile .body{fill:var(--kit)}
+.tile .collar{fill:none;stroke:#D6DED8;stroke-width:2}
+.tile .nm{font-family:'Barlow Condensed','Barlow',sans-serif;font-weight:600;fill:var(--ink);
+  text-anchor:middle;letter-spacing:.6px}
+.tile .no{font-family:'Oswald',Impact,sans-serif;font-weight:700;fill:var(--ink);text-anchor:middle}
+.tile.free{cursor:pointer}
+.tile.free .nm{fill:#9AA9A0;letter-spacing:1.4px}
+.tile.free:hover{transform:translateY(-5px)}
+.tile.free:hover .body{fill:#fff;stroke:var(--signal);stroke-width:2.5}
+.tile.free.selected{transform:translateY(-5px)}
+.tile.free.selected .body{stroke:var(--signal);stroke-width:3}
+.tile.free.selected .no{fill:var(--signal)}
+.tile.taken{cursor:default}
+.tile.taken .body{fill:none;stroke:rgba(238,243,236,.3);stroke-width:2;stroke-dasharray:6 4}
+.tile.taken .collar{stroke:rgba(238,243,236,.22)}
+.tile.taken .nm{fill:var(--chalk);letter-spacing:.8px}
+.tile.taken .no{fill:var(--taken)}
+.loading{color:var(--taken);font-style:italic;padding:20px 2px}
+
+.coachbar{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.coachbar small{color:var(--taken);font-size:13px}
+.panel{margin-top:16px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+  border-radius:var(--radius);padding:18px}
+.panel h2{font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:20px;margin:0 0 12px;font-weight:600}
+.panel p.lede{color:var(--taken);font-size:14px;margin:0 0 12px}
+.rowform{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.rowform input[type=text]{width:auto;flex:1;min-width:150px;font-size:16px;padding:11px 12px}
+.pmsg{min-height:20px;font-size:14px;color:#FF9C6B;margin:6px 0 0}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.12em;font-size:12px;
+  color:var(--taken);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-weight:600}
+td{padding:9px 8px;border-bottom:1px solid rgba(238,243,236,.08);vertical-align:middle}
+td.n{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;width:52px}
+td.t{color:var(--taken);font-size:13px}
+tr.fresh td.n{color:var(--signal)}
+.badge{background:var(--signal);color:#fff;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
+  letter-spacing:.1em;font-size:11px;padding:2px 7px;border-radius:99px;margin-left:8px}
+.x{background:none;border:0;color:var(--taken);cursor:pointer;font-size:18px;padding:2px 8px;letter-spacing:0}
+.x:hover{background:none;color:#FF9C6B}
+.confirm{font-size:13px;color:#FF9C6B;white-space:nowrap}
+.confirm button{padding:4px 9px;font-size:12px;margin-left:6px}
+.empty{color:var(--taken);font-style:italic;padding:10px 2px}
+.settings{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.settings label{font-size:14px;color:var(--taken);margin-right:6px}
+.settings input[type=number]{width:74px;background:var(--pitch-deep);border:1.5px solid var(--line);
+  border-radius:6px;color:var(--chalk);padding:8px;font-family:'Barlow',sans-serif;font-size:15px}
+.openlist{font-size:14px;color:var(--taken);margin:10px 0 0;line-height:1.6}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:520px){.claim{grid-template-columns:1fr}body{padding:20px 14px 56px}
+  .board{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}}
+</style>
+
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">Team roster</p>
+      <h1>Pick your number</h1>
+    </div>
+    <div class="tally" id="tally">Loading…</div>
+  </header>
+
+  <div class="claim">
+    <label class="help" for="entry">Type your <b>first name</b> and the number you want — like <b>Marcus 10</b>. Or tap a blank kit below.</label>
+    <input type="text" id="entry" placeholder="First name and number" autocomplete="off" spellcheck="false">
+    <button id="claimBtn">Claim it</button>
+  </div>
+  <p class="note" id="note"></p>
+
+  <div class="board" id="board"></div>
+  <p class="loading" id="loading">Loading the rack…</p>
+
+  <div class="coachbar">
+    <small>Blank white kits are open. Dashed kits already have a name on the back.</small>
+    <button class="ghost" id="coachBtn">Coach view</button>
+  </div>
+  <div id="coachPanel"></div>
+</div>
+
+<script>
+const API='/api/roster';
+const SHIRT='M38,10 L30,5 L6,19 L0,35 L20,48 L26,40 L26,103 Q26,110 33,110 L67,110 Q74,110 74,103 L74,40 L80,48 L100,35 L94,19 L70,5 L62,10 C58,18 42,18 38,10 Z';
+const COLLAR='M38,10 C42,19 58,19 62,10';
+
+let roster={min:1,max:99,picks:[],pinSet:false};
+let selected=null, view='closed', pendingDelete=null, coachPin=null;
+let lastSeen=Number(localStorage.getItem('jersey:lastSeen')||0);
+
+async function api(action,extra){
+  const res=await fetch(API,{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({action,...(extra||{})})
+  });
+  let data={};
+  try{ data=await res.json(); }catch(e){}
+  if(!res.ok){ const err=new Error(data.error||'Something went wrong.'); err.data=data; throw err; }
+  return data;
+}
+
+const norm=s=>s.trim().toLowerCase();
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function tidyName(s){
+  return s.trim().replace(/\s+/g,' ').split(' ')
+    .map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+}
+function when(ts){
+  return new Date(ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+}
+function say(msg,kind){
+  const n=document.getElementById('note');
+  n.textContent=msg||''; n.className='note'+(kind?' '+kind:'');
+}
+function pmsg(msg){ const el=document.getElementById('pmsg'); if(el) el.textContent=msg||''; }
+
+function nameSize(len){
+  if(len<=5) return 12;
+  if(len<=7) return 10.5;
+  if(len<=9) return 9;
+  if(len<=12) return 7.5;
+  return 6.5;
+}
+function shirt(n,name,taken){
+  const label=(name||'OPEN').toUpperCase();
+  const fs=nameSize(label.length);
+  const numFs=String(n).length>1?34:36;
+  return `<svg viewBox="-3 -3 106 116" role="img" aria-label="${taken?esc(name)+', number '+n:'Number '+n+', open'}">
+    <path class="body" d="${SHIRT}"/>
+    <path class="collar" d="${COLLAR}"/>
+    <text class="nm" x="50" y="46" style="font-size:${fs}px">${esc(label)}</text>
+    <text class="no" x="50" y="90" style="font-size:${numFs}px">${n}</text>
+  </svg>`;
+}
+
+function render(){
+  document.getElementById('loading').style.display='none';
+  const byNum={};
+  roster.picks.forEach(p=>byNum[p.number]=p);
+
+  let html='';
+  for(let n=roster.min;n<=roster.max;n++){
+    const p=byNum[n];
+    html += p
+      ? `<div class="tile taken">${shirt(n,p.name,true)}</div>`
+      : `<button class="tile free${selected===n?' selected':''}" data-n="${n}">${shirt(n,null,false)}</button>`;
+  }
+  const board=document.getElementById('board');
+  board.innerHTML=html;
+  board.querySelectorAll('.tile.free').forEach(t=>t.addEventListener('click',()=>pickTile(Number(t.dataset.n))));
+
+  const total=roster.max-roster.min+1, taken=roster.picks.length;
+  document.getElementById('tally').innerHTML=`<b>${total-taken}</b> open &nbsp;/&nbsp; <b>${taken}</b> claimed`;
+
+  const fresh=roster.picks.filter(p=>p.ts>lastSeen).length;
+  document.getElementById('coachBtn').innerHTML='Coach view'+(fresh&&view==='closed'?`<span class="badge">${fresh} new</span>`:'');
+
+  if(view==='gate') renderGate();
+  else if(view==='open') renderCoach();
+  else document.getElementById('coachPanel').innerHTML='';
+}
+
+function pickTile(n){
+  selected=n;
+  const box=document.getElementById('entry');
+  const parsed=parse(box.value);
+  box.value=(parsed.name?parsed.name+' ':'')+n;
+  box.focus();
+  render();
+  if(!parsed.name) say('Now type your first name in front of the '+n+'.','');
+}
+
+function parse(raw){
+  const s=(raw||'').trim().replace(/[#,]/g,' ').replace(/\s+/g,' ');
+  const m=s.match(/^(.*?)(\d{1,3})$/);
+  return m?{name:m[1].trim(),number:Number(m[2])}:{name:s,number:null};
+}
+
+async function claim(){
+  const btn=document.getElementById('claimBtn');
+  const {name,number}=parse(document.getElementById('entry').value);
+
+  if(!name&&number===null) return say('Type your first name and the number you want.','err');
+  if(!name) return say('Add your first name in front of the number.','err');
+  if(!/^[A-Za-z][A-Za-z'\u2019\-. ]*$/.test(name)) return say('Use letters only for your first name.','err');
+  if(number===null) return say('Add the number you want after your name — like '+tidyName(name)+' 8.','err');
+  if(number<roster.min||number>roster.max) return say(`Pick a number between ${roster.min} and ${roster.max}.`,'err');
+
+  btn.disabled=true;
+  try{
+    const out=await api('claim',{name,number});
+    roster=out.roster;
+    selected=null;
+    document.getElementById('entry').value='';
+    render();
+    say(`${out.name} — you've got number ${out.number}.`,'ok');
+  }catch(e){
+    if(e.data&&e.data.roster){ roster=e.data.roster; selected=null; render(); }
+    say(e.message,'err');
+  }finally{ btn.disabled=false; }
+}
+
+function renderGate(){
+  const first=!roster.pinSet;
+  document.getElementById('coachPanel').innerHTML=`
+    <div class="panel">
+      <h2>${first?'Set your coach PIN':'Coach sign in'}</h2>
+      <p class="lede">${first
+        ? 'Pick a PIN now, before you share the link. You will need it every time you open the coach view.'
+        : 'Enter the PIN you set.'}</p>
+      <div class="rowform">
+        <input type="text" id="pinBox" placeholder="${first?'New PIN':'PIN'}" autocomplete="off">
+        <button id="pinGo">${first?'Save PIN':'Open'}</button>
+        <button class="ghost" id="pinCancel">Cancel</button>
+      </div>
+      <p class="pmsg" id="pmsg"></p>
+    </div>`;
+  const box=document.getElementById('pinBox');
+  box.focus();
+  box.addEventListener('keydown',e=>{ if(e.key==='Enter') submitPin(); });
+  document.getElementById('pinGo').addEventListener('click',submitPin);
+  document.getElementById('pinCancel').addEventListener('click',()=>{ view='closed'; render(); });
+}
+
+async function submitPin(){
+  const val=String(document.getElementById('pinBox').value||'').trim();
+  if(!val) return pmsg('Enter a PIN to continue.');
+  try{
+    const out=await api('coach',{pin:val});
+    coachPin=val;
+    roster=out.roster;
+    view='open';
+    render();
+  }catch(e){ pmsg(e.message); }
+}
+
+function renderCoach(){
+  const picks=[...roster.picks].sort((a,b)=>b.ts-a.ts);
+  const fresh=picks.filter(p=>p.ts>lastSeen).length;
+  const takenNums=new Set(picks.map(p=>p.number));
+  const openList=[];
+  for(let n=roster.min;n<=roster.max;n++) if(!takenNums.has(n)) openList.push(n);
+
+  const rows=picks.map(p=>`
+    <tr class="${p.ts>lastSeen?'fresh':''}">
+      <td class="n">${p.number}</td>
+      <td>${esc(p.name)}${p.ts>lastSeen?'<span class="badge">New</span>':''}</td>
+      <td class="t">${when(p.ts)}</td>
+      <td style="text-align:right">${
+        pendingDelete===p.number
+          ? `<span class="confirm">Free it up?<button id="delYes">Yes</button><button class="ghost" id="delNo">No</button></span>`
+          : `<button class="x" data-del="${p.number}" title="Free up ${p.number}">&#10005;</button>`
+      }</td>
+    </tr>`).join('');
+
+  document.getElementById('coachPanel').innerHTML=`
+    <div class="panel">
+      <h2>Who has picked${fresh?` — ${fresh} new since you last looked`:''}</h2>
+      ${picks.length
+        ? `<table><thead><tr><th>No.</th><th>Player</th><th>Picked</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+        : '<p class="empty">Nobody has claimed a number yet. Share the link with the team.</p>'}
+      <div class="rowform" style="margin-top:16px">
+        <button class="ghost" id="markSeen">Mark all as seen</button>
+        <button class="ghost" id="csvBtn">Download CSV</button>
+        <button class="ghost" id="closeCoach">Close coach view</button>
+      </div>
+      <p class="openlist">Still open (${openList.length}): ${openList.length?openList.join(', '):'none — every number is claimed'}</p>
+      <div class="settings">
+        <label for="minN">Numbers from</label>
+        <input type="number" id="minN" value="${roster.min}" min="0" max="99">
+        <label for="maxN">to</label>
+        <input type="number" id="maxN" value="${roster.max}" min="0" max="99">
+        <button class="ghost" id="saveRange">Save range</button>
+        <p class="pmsg" id="pmsg"></p>
+      </div>
+    </div>`;
+
+  document.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{ pendingDelete=Number(b.dataset.del); render(); }));
+  const yes=document.getElementById('delYes');
+  if(yes){
+    yes.addEventListener('click',removePick);
+    document.getElementById('delNo').addEventListener('click',()=>{ pendingDelete=null; render(); });
+  }
+  document.getElementById('markSeen').addEventListener('click',markSeen);
+  document.getElementById('csvBtn').addEventListener('click',csv);
+  document.getElementById('closeCoach').addEventListener('click',()=>{ view='closed'; pendingDelete=null; render(); });
+  document.getElementById('saveRange').addEventListener('click',saveRange);
+}
+
+function openCoach(){
+  view=(view==='closed')?'gate':'closed';
+  pendingDelete=null;
+  render();
+}
+
+async function removePick(){
+  const n=pendingDelete;
+  pendingDelete=null;
+  try{
+    const out=await api('remove',{pin:coachPin,number:n});
+    roster=out.roster;
+    render();
+  }catch(e){ render(); pmsg(e.message); }
+}
+
+function markSeen(){
+  lastSeen=Date.now();
+  localStorage.setItem('jersey:lastSeen',String(lastSeen));
+  render();
+}
+
+async function saveRange(){
+  const min=Number(document.getElementById('minN').value);
+  const max=Number(document.getElementById('maxN').value);
+  try{
+    const out=await api('range',{pin:coachPin,min,max});
+    roster=out.roster;
+    render();
+    pmsg('Range saved.');
+  }catch(e){ pmsg(e.message); }
+}
+
+function csv(){
+  const rows=[['Number','First name','Picked']]
+    .concat([...roster.picks].sort((a,b)=>a.number-b.number)
+      .map(p=>[p.number,p.name,new Date(p.ts).toISOString()]));
+  const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='jersey-numbers.csv';
+  a.click();
+}
+
+document.getElementById('claimBtn').addEventListener('click',claim);
+document.getElementById('entry').addEventListener('keydown',e=>{ if(e.key==='Enter') claim(); });
+document.getElementById('coachBtn').addEventListener('click',openCoach);
+
+async function refresh(){
+  if(view!=='closed') return;
+  try{
+    const next=await api('get');
+    if(JSON.stringify(next)!==JSON.stringify(roster)){ roster=next; render(); }
+  }catch(e){}
+}
+
+(async()=>{
+  try{
+    roster=await api('get');
+    render();
+  }catch(e){
+    document.getElementById('loading').textContent='The roster is not reachable. Reload the page in a moment.';
+  }
+  setInterval(refresh,8000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refresh(); });
+})();
+</script>
+</body>
+</html>

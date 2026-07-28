@@ -2,7 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pick Your Number</title>
+<title>Bayou Legends — Pick Your Number</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap');
 
@@ -113,6 +113,12 @@ td input[type=number]{font-family:'Oswald',sans-serif;font-weight:700;font-size:
 .rowbtns{white-space:nowrap}
 .rowbtns button{padding:6px 11px;font-size:13px;margin-left:6px}
 tr.editing{background:rgba(249,77,0,.07)}
+
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;
+  font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
+  letter-spacing:.18em;font-size:12px;color:var(--taken)}
+footer .mark{display:inline-block;width:22px;height:3px;background:var(--signal);border-radius:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media (max-width:520px){.claim{grid-template-columns:1fr}body{padding:20px 14px 56px}
   .board{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}}
@@ -122,7 +128,7 @@ tr.editing{background:rgba(249,77,0,.07)}
 <div class="wrap">
   <header>
     <div>
-      <p class="eyebrow">Team roster</p>
+      <p class="eyebrow">Bayou Legends</p>
       <h1>Pick your number</h1>
     </div>
     <div class="tally" id="tally">Loading…</div>
@@ -143,6 +149,11 @@ tr.editing{background:rgba(249,77,0,.07)}
     <button class="ghost" id="coachBtn">Coach view</button>
   </div>
   <div id="coachPanel"></div>
+
+  <footer>
+    <span class="mark"></span>
+    Designed by Robbie Bott
+  </footer>
 </div>
 
 <script>

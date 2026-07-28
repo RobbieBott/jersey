@@ -100,6 +100,19 @@ tr.fresh td.n{color:var(--signal)}
 .settings input[type=number]{width:74px;background:var(--pitch-deep);border:1.5px solid var(--line);
   border-radius:6px;color:var(--chalk);padding:8px;font-family:'Barlow',sans-serif;font-size:15px}
 .openlist{font-size:14px;color:var(--taken);margin:10px 0 0;line-height:1.6}
+.assign{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 16px;
+  padding:12px;background:rgba(0,0,0,.16);border-radius:8px}
+.assign input[type=text]{flex:1;min-width:130px;font-size:15px;padding:9px 11px}
+.assign input[type=number],td input[type=number]{width:70px;background:var(--pitch-deep);
+  border:1.5px solid var(--line);border-radius:6px;color:var(--chalk);padding:9px;
+  font-family:'Barlow',sans-serif;font-size:15px}
+td input[type=text]{padding:8px 10px;font-size:15px}
+td input[type=number]{font-family:'Oswald',sans-serif;font-weight:700;font-size:17px;padding:7px}
+.pencil{background:none;border:0;color:var(--taken);cursor:pointer;font-size:15px;padding:2px 6px;letter-spacing:0}
+.pencil:hover{background:none;color:var(--signal)}
+.rowbtns{white-space:nowrap}
+.rowbtns button{padding:6px 11px;font-size:13px;margin-left:6px}
+tr.editing{background:rgba(249,77,0,.07)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media (max-width:520px){.claim{grid-template-columns:1fr}body{padding:20px 14px 56px}
   .board{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}}
@@ -138,7 +151,7 @@ const SHIRT='M38,10 L30,5 L6,19 L0,35 L20,48 L26,40 L26,103 Q26,110 33,110 L67,1
 const COLLAR='M38,10 C42,19 58,19 62,10';
 
 let roster={min:1,max:99,picks:[],pinSet:false};
-let selected=null, view='closed', pendingDelete=null, coachPin=null;
+let selected=null, view='closed', pendingDelete=null, coachPin=null, editing=null;
 let lastSeen=Number(localStorage.getItem('jersey:lastSeen')||0);
 
 async function api(action,extra){
@@ -295,21 +308,36 @@ function renderCoach(){
   const openList=[];
   for(let n=roster.min;n<=roster.max;n++) if(!takenNums.has(n)) openList.push(n);
 
-  const rows=picks.map(p=>`
-    <tr class="${p.ts>lastSeen?'fresh':''}">
+  const rows=picks.map(p=>{
+    if(editing===p.number){
+      return `<tr class="editing">
+        <td class="n"><input type="number" class="edNum" value="${p.number}" min="${roster.min}" max="${roster.max}"></td>
+        <td><input type="text" class="edName" value="${esc(p.name)}" autocomplete="off"></td>
+        <td class="t">${when(p.ts)}</td>
+        <td style="text-align:right" class="rowbtns">
+          <button class="edSave">Save</button><button class="ghost edCancel">Cancel</button>
+        </td></tr>`;
+    }
+    return `<tr class="${p.ts>lastSeen?'fresh':''}">
       <td class="n">${p.number}</td>
       <td>${esc(p.name)}${p.ts>lastSeen?'<span class="badge">New</span>':''}</td>
       <td class="t">${when(p.ts)}</td>
-      <td style="text-align:right">${
+      <td style="text-align:right" class="rowbtns">${
         pendingDelete===p.number
-          ? `<span class="confirm">Free it up?<button id="delYes">Yes</button><button class="ghost" id="delNo">No</button></span>`
-          : `<button class="x" data-del="${p.number}" title="Free up ${p.number}">&#10005;</button>`
-      }</td>
-    </tr>`).join('');
+          ? `<span class="confirm">Free it up?<button class="delYes">Yes</button><button class="ghost delNo">No</button></span>`
+          : `<button class="pencil" data-edit="${p.number}" title="Change ${p.name}'s number or name">&#9998;</button>
+             <button class="x" data-del="${p.number}" title="Free up ${p.number}">&#10005;</button>`
+      }</td></tr>`;
+  }).join('');
 
   document.getElementById('coachPanel').innerHTML=`
     <div class="panel">
       <h2>Who has picked${fresh?` — ${fresh} new since you last looked`:''}</h2>
+      <div class="assign">
+        <input type="text" id="asName" placeholder="First name" autocomplete="off">
+        <input type="number" id="asNum" placeholder="No." min="${roster.min}" max="${roster.max}">
+        <button id="asGo">Assign</button>
+      </div>
       ${picks.length
         ? `<table><thead><tr><th>No.</th><th>Player</th><th>Picked</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
         : '<p class="empty">Nobody has claimed a number yet. Share the link with the team.</p>'}
@@ -329,21 +357,69 @@ function renderCoach(){
       </div>
     </div>`;
 
-  document.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{ pendingDelete=Number(b.dataset.del); render(); }));
-  const yes=document.getElementById('delYes');
+  document.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{
+    editing=Number(b.dataset.edit); pendingDelete=null; render();
+    const f=document.querySelector('.edName'); if(f){ f.focus(); f.select(); }
+  }));
+  document.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
+    pendingDelete=Number(b.dataset.del); editing=null; render();
+  }));
+  const yes=document.querySelector('.delYes');
   if(yes){
     yes.addEventListener('click',removePick);
-    document.getElementById('delNo').addEventListener('click',()=>{ pendingDelete=null; render(); });
+    document.querySelector('.delNo').addEventListener('click',()=>{ pendingDelete=null; render(); });
   }
+  const savEd=document.querySelector('.edSave');
+  if(savEd){
+    savEd.addEventListener('click',saveEdit);
+    document.querySelector('.edCancel').addEventListener('click',()=>{ editing=null; render(); });
+    document.querySelectorAll('.edName,.edNum').forEach(el=>el.addEventListener('keydown',e=>{
+      if(e.key==='Enter') saveEdit();
+      if(e.key==='Escape'){ editing=null; render(); }
+    }));
+  }
+  document.getElementById('asGo').addEventListener('click',assign);
+  document.getElementById('asNum').addEventListener('keydown',e=>{ if(e.key==='Enter') assign(); });
   document.getElementById('markSeen').addEventListener('click',markSeen);
   document.getElementById('csvBtn').addEventListener('click',csv);
-  document.getElementById('closeCoach').addEventListener('click',()=>{ view='closed'; pendingDelete=null; render(); });
+  document.getElementById('closeCoach').addEventListener('click',()=>{ view='closed'; pendingDelete=null; editing=null; render(); });
   document.getElementById('saveRange').addEventListener('click',saveRange);
+}
+
+async function saveEdit(){
+  const current=editing;
+  const newName=document.querySelector('.edName').value;
+  const newNumber=document.querySelector('.edNum').value;
+  try{
+    const out=await api('edit',{pin:coachPin,number:current,newName,newNumber});
+    editing=null;
+    roster=out.roster;
+    render();
+  }catch(e){
+    if(e.data&&e.data.roster) roster=e.data.roster;
+    render();
+    pmsg(e.message);
+  }
+}
+
+async function assign(){
+  const name=document.getElementById('asName').value;
+  const number=Number(document.getElementById('asNum').value);
+  if(!name.trim()||!number) return pmsg('Enter a first name and a number.');
+  try{
+    const out=await api('assign',{pin:coachPin,name,number});
+    roster=out.roster;
+    render();
+  }catch(e){
+    if(e.data&&e.data.roster) roster=e.data.roster;
+    render();
+    pmsg(e.message);
+  }
 }
 
 function openCoach(){
   view=(view==='closed')?'gate':'closed';
-  pendingDelete=null;
+  pendingDelete=null; editing=null;
   render();
 }
 

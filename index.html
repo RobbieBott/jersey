@@ -3,12 +3,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bayou Legends — Pick Your Number</title>
+<link rel="icon" href="assets/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<meta name="theme-color" content="#0D171C">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap');
 
 :root{
-  --pitch:#0E3324; --pitch-deep:#092018; --chalk:#EEF3EC; --kit:#FFFFFF; --ink:#0B1F16;
-  --taken:#9DB0A5; --signal:#F94D00; --signal-dim:#C43D02; --line:rgba(238,243,236,.16); --radius:10px;
+  --pitch:#132229; --pitch-deep:#080F14; --chalk:#EFE8D5; --kit:#F7F3E7; --ink:#0D171C;
+  --taken:#8E9686; --signal:#C2A15C; --signal-dim:#A6853F; --olive:#4A5638;
+  --line:rgba(239,232,213,.16); --radius:10px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -23,6 +27,9 @@ body{
 .wrap{max-width:960px;margin:0 auto}
 header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
   border-bottom:2px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:16px}
+.crest{width:clamp(62px,11vw,92px);height:auto;display:block;flex:none;
+  filter:drop-shadow(0 3px 10px rgba(0,0,0,.45))}
 .eyebrow{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.22em;
   font-size:13px;color:var(--signal);margin:0 0 4px}
 h1{font-family:'Oswald',Impact,sans-serif;font-weight:600;font-size:clamp(30px,6.5vw,46px);
@@ -39,34 +46,34 @@ input[type=text]{width:100%;background:var(--pitch-deep);border:1.5px solid var(
 input[type=text]::placeholder{color:rgba(238,243,236,.35)}
 input:focus,button:focus-visible,.tile:focus-visible{outline:3px solid var(--signal);outline-offset:3px;border-radius:6px}
 button{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.1em;
-  font-weight:600;font-size:16px;background:var(--signal);color:#fff;border:0;border-radius:8px;
+  font-weight:600;font-size:16px;background:var(--signal);color:var(--ink);border:0;border-radius:8px;
   padding:14px 22px;cursor:pointer}
-button:hover{background:var(--signal-dim)}
-button[disabled]{background:#3B4E44;color:#8DA096;cursor:not-allowed}
+button:hover{background:var(--signal-dim);color:#fff}
+button[disabled]{background:#33413F;color:#8A9686;cursor:not-allowed}
 button.ghost{background:transparent;color:var(--chalk);border:1.5px solid var(--line);padding:9px 14px;font-size:14px}
 button.ghost:hover{background:rgba(255,255,255,.07)}
 .note{min-height:22px;font-size:15px;margin:0 0 22px;padding-left:2px}
-.note.err{color:#FF9C6B}
-.note.ok{color:#8FE3B0}
+.note.err{color:#E0895A}
+.note.ok{color:#A8C486}
 
 .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:12px 10px}
 .tile{background:none;border:0;padding:0;margin:0;display:block;width:100%;transition:transform .14s ease}
 .tile svg{width:100%;display:block;overflow:visible}
 .tile .body{fill:var(--kit)}
-.tile .collar{fill:none;stroke:#D6DED8;stroke-width:2}
+.tile .collar{fill:none;stroke:#D3CDBB;stroke-width:2}
 .tile .nm{font-family:'Barlow Condensed','Barlow',sans-serif;font-weight:600;fill:var(--ink);
   text-anchor:middle;letter-spacing:.6px}
 .tile .no{font-family:'Oswald',Impact,sans-serif;font-weight:700;fill:var(--ink);text-anchor:middle}
 .tile.free{cursor:pointer}
-.tile.free .nm{fill:#9AA9A0;letter-spacing:1.4px}
+.tile.free .nm{fill:#9B9A85;letter-spacing:1.4px}
 .tile.free:hover{transform:translateY(-5px)}
-.tile.free:hover .body{fill:#fff;stroke:var(--signal);stroke-width:2.5}
+.tile.free:hover .body{fill:#FFFDF5;stroke:var(--signal);stroke-width:2.5}
 .tile.free.selected{transform:translateY(-5px)}
 .tile.free.selected .body{stroke:var(--signal);stroke-width:3}
-.tile.free.selected .no{fill:var(--signal)}
+.tile.free.selected .no{fill:var(--signal-dim)}
 .tile.taken{cursor:default}
-.tile.taken .body{fill:none;stroke:rgba(238,243,236,.3);stroke-width:2;stroke-dasharray:6 4}
-.tile.taken .collar{stroke:rgba(238,243,236,.22)}
+.tile.taken .body{fill:none;stroke:rgba(239,232,213,.3);stroke-width:2;stroke-dasharray:6 4}
+.tile.taken .collar{stroke:rgba(239,232,213,.22)}
 .tile.taken .nm{fill:var(--chalk);letter-spacing:.8px}
 .tile.taken .no{fill:var(--taken)}
 .loading{color:var(--taken);font-style:italic;padding:20px 2px}
@@ -80,19 +87,19 @@ button.ghost:hover{background:rgba(255,255,255,.07)}
 .panel p.lede{color:var(--taken);font-size:14px;margin:0 0 12px}
 .rowform{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
 .rowform input[type=text]{width:auto;flex:1;min-width:150px;font-size:16px;padding:11px 12px}
-.pmsg{min-height:20px;font-size:14px;color:#FF9C6B;margin:6px 0 0}
+.pmsg{min-height:20px;font-size:14px;color:#E0895A;margin:6px 0 0}
 table{width:100%;border-collapse:collapse;font-size:15px}
 th{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.12em;font-size:12px;
   color:var(--taken);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-weight:600}
-td{padding:9px 8px;border-bottom:1px solid rgba(238,243,236,.08);vertical-align:middle}
+td{padding:9px 8px;border-bottom:1px solid rgba(239,232,213,.08);vertical-align:middle}
 td.n{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;width:52px}
 td.t{color:var(--taken);font-size:13px}
 tr.fresh td.n{color:var(--signal)}
-.badge{background:var(--signal);color:#fff;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
+.badge{background:var(--signal);color:var(--ink);font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
   letter-spacing:.1em;font-size:11px;padding:2px 7px;border-radius:99px;margin-left:8px}
 .x{background:none;border:0;color:var(--taken);cursor:pointer;font-size:18px;padding:2px 8px;letter-spacing:0}
-.x:hover{background:none;color:#FF9C6B}
-.confirm{font-size:13px;color:#FF9C6B;white-space:nowrap}
+.x:hover{background:none;color:#E0895A}
+.confirm{font-size:13px;color:#E0895A;white-space:nowrap}
 .confirm button{padding:4px 9px;font-size:12px;margin-left:6px}
 .empty{color:var(--taken);font-style:italic;padding:10px 2px}
 .settings{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
@@ -112,13 +119,13 @@ td input[type=number]{font-family:'Oswald',sans-serif;font-weight:700;font-size:
 .pencil:hover{background:none;color:var(--signal)}
 .rowbtns{white-space:nowrap}
 .rowbtns button{padding:6px 11px;font-size:13px;margin-left:6px}
-tr.editing{background:rgba(249,77,0,.07)}
+tr.editing{background:rgba(194,161,92,.09)}
 
 footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);
   display:flex;align-items:center;gap:10px;
   font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
   letter-spacing:.18em;font-size:12px;color:var(--taken)}
-footer .mark{display:inline-block;width:22px;height:3px;background:var(--signal);border-radius:2px}
+footer .footmark{width:26px;height:auto;opacity:.75}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media (max-width:520px){.claim{grid-template-columns:1fr}body{padding:20px 14px 56px}
   .board{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}}
@@ -127,9 +134,12 @@ footer .mark{display:inline-block;width:22px;height:3px;background:var(--signal)
 <body>
 <div class="wrap">
   <header>
-    <div>
-      <p class="eyebrow">Bayou Legends</p>
-      <h1>Pick your number</h1>
+    <div class="brand">
+      <img class="crest" src="assets/logo.png" alt="Bayou Legends crest" width="404" height="420">
+      <div>
+        <p class="eyebrow">Bayou Legends</p>
+        <h1>Pick your number</h1>
+      </div>
     </div>
     <div class="tally" id="tally">Loading…</div>
   </header>
@@ -151,7 +161,7 @@ footer .mark{display:inline-block;width:22px;height:3px;background:var(--signal)
   <div id="coachPanel"></div>
 
   <footer>
-    <span class="mark"></span>
+    <img class="footmark" src="assets/logo.png" alt="" width="404" height="420">
     Designed by Robbie Bott
   </footer>
 </div>

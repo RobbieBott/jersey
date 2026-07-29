@@ -52,6 +52,21 @@ button:hover{background:var(--signal-dim);color:#fff}
 button[disabled]{background:#33413F;color:#8A9686;cursor:not-allowed}
 button.ghost{background:transparent;color:var(--chalk);border:1.5px solid var(--line);padding:9px 14px;font-size:14px}
 button.ghost:hover{background:rgba(255,255,255,.07)}
+.lockbanner{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:14px 16px;
+  background:rgba(194,161,92,.12);border:1px solid rgba(194,161,92,.45);border-radius:var(--radius)}
+.lockbanner .ico{font-size:20px;line-height:1;color:var(--signal)}
+.lockbanner p{margin:0;font-size:15px}
+.lockbanner b{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--signal);display:block;font-size:13px}
+.claim.off{opacity:.45;pointer-events:none}
+.tile.locked{cursor:default}
+.tile.locked .body{fill:#DCD8CA}
+.tile.locked .nm,.tile.locked .no{fill:#7C8175}
+.lockrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px;padding:12px;
+  background:rgba(0,0,0,.16);border-radius:8px}
+.lockrow .state{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
+  letter-spacing:.14em;font-size:13px;color:var(--taken)}
+.lockrow .state.on{color:var(--signal)}
 .note{min-height:22px;font-size:15px;margin:0 0 22px;padding-left:2px}
 .note.err{color:#E0895A}
 .note.ok{color:#A8C486}
@@ -144,7 +159,9 @@ footer .footmark{width:26px;height:auto;opacity:.75}
     <div class="tally" id="tally">Loading…</div>
   </header>
 
-  <div class="claim">
+  <div id="lockBanner"></div>
+
+  <div class="claim" id="claimBox">
     <label class="help" for="entry">Type your <b>first name</b> and the number you want — like <b>Marcus 10</b>. Or tap a blank kit below.</label>
     <input type="text" id="entry" placeholder="First name and number" autocomplete="off" spellcheck="false">
     <button id="claimBtn">Claim it</button>
@@ -155,7 +172,7 @@ footer .footmark{width:26px;height:auto;opacity:.75}
   <p class="loading" id="loading">Loading the rack…</p>
 
   <div class="coachbar">
-    <small>Blank white kits are availiable to be claimed. Dashed kits have the name of the player who has claimed the number.</small>
+    <small>Blank white kits are open. Dashed kits already have a name on the back.</small>
     <button class="ghost" id="coachBtn">Coach view</button>
   </div>
   <div id="coachPanel"></div>
@@ -229,13 +246,21 @@ function render(){
   let html='';
   for(let n=roster.min;n<=roster.max;n++){
     const p=byNum[n];
-    html += p
-      ? `<div class="tile taken">${shirt(n,p.name,true)}</div>`
-      : `<button class="tile free${selected===n?' selected':''}" data-n="${n}">${shirt(n,null,false)}</button>`;
+    if(p) html += `<div class="tile taken">${shirt(n,p.name,true)}</div>`;
+    else if(roster.locked) html += `<div class="tile locked">${shirt(n,null,false)}</div>`;
+    else html += `<button class="tile free${selected===n?' selected':''}" data-n="${n}">${shirt(n,null,false)}</button>`;
   }
   const board=document.getElementById('board');
   board.innerHTML=html;
   board.querySelectorAll('.tile.free').forEach(t=>t.addEventListener('click',()=>pickTile(Number(t.dataset.n))));
+
+  document.getElementById('lockBanner').innerHTML = roster.locked
+    ? `<div class="lockbanner"><span class="ico">&#128274;</span>
+        <p><b>Picking is closed</b>Numbers are locked right now. Your coach will open it back up.</p></div>`
+    : '';
+  document.getElementById('claimBox').className = 'claim' + (roster.locked ? ' off' : '');
+  document.getElementById('entry').disabled = roster.locked;
+  document.getElementById('claimBtn').disabled = roster.locked;
 
   const total=roster.max-roster.min+1, taken=roster.picks.length;
   document.getElementById('tally').innerHTML=`<b>${total-taken}</b> open &nbsp;/&nbsp; <b>${taken}</b> claimed`;
@@ -265,6 +290,7 @@ function parse(raw){
 }
 
 async function claim(){
+  if(roster.locked) return say('Picking is closed right now.','err');
   const btn=document.getElementById('claimBtn');
   const {name,number}=parse(document.getElementById('entry').value);
 
@@ -354,6 +380,10 @@ function renderCoach(){
   document.getElementById('coachPanel').innerHTML=`
     <div class="panel">
       <h2>Who has picked${fresh?` — ${fresh} new since you last looked`:''}</h2>
+      <div class="lockrow">
+        <span class="state${roster.locked?' on':''}">${roster.locked?'&#128274; Picking is locked':'&#128275; Picking is open'}</span>
+        <button id="lockBtn">${roster.locked?'Unlock picking':'Lock picking'}</button>
+      </div>
       <div class="assign">
         <input type="text" id="asName" placeholder="First name" autocomplete="off">
         <input type="number" id="asNum" placeholder="No." min="${roster.min}" max="${roster.max}">
@@ -399,6 +429,7 @@ function renderCoach(){
       if(e.key==='Escape'){ editing=null; render(); }
     }));
   }
+  document.getElementById('lockBtn').addEventListener('click',toggleLock);
   document.getElementById('asGo').addEventListener('click',assign);
   document.getElementById('asNum').addEventListener('keydown',e=>{ if(e.key==='Enter') assign(); });
   document.getElementById('markSeen').addEventListener('click',markSeen);
@@ -421,6 +452,14 @@ async function saveEdit(){
     render();
     pmsg(e.message);
   }
+}
+
+async function toggleLock(){
+  try{
+    const out=await api('lock',{pin:coachPin,locked:!roster.locked});
+    roster=out.roster;
+    render();
+  }catch(e){ pmsg(e.message); }
 }
 
 async function assign(){

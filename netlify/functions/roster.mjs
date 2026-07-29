@@ -1,7 +1,7 @@
 import { getStore } from '@netlify/blobs';
 
 const KEY = 'roster';
-const DEFAULTS = { min: 1, max: 99, pin: null, picks: [] };
+const DEFAULTS = { min: 1, max: 99, pin: null, picks: [], locked: false };
 const NAME_RE = /^[A-Za-z][A-Za-z'\u2019\-. ]{0,24}$/;
 
 const store = () => getStore('jersey');
@@ -17,7 +17,7 @@ const reply = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
 
 /* what every visitor is allowed to see: the board, never the PIN */
-const board = d => ({ min: d.min, max: d.max, picks: d.picks, pinSet: !!(process.env.COACH_PIN || d.pin) });
+const board = d => ({ min: d.min, max: d.max, picks: d.picks, locked: !!d.locked, pinSet: !!(process.env.COACH_PIN || d.pin) });
 
 const tidy = s => s.trim().replace(/\s+/g, ' ').split(' ')
   .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
@@ -59,6 +59,8 @@ export default async (req) => {
     if (action === 'get') return reply(board(data));
 
     if (action === 'claim') {
+      if (data.locked)
+        return reply({ error: 'Number picking is closed right now. Check with your coach.', roster: board(data) }, 423);
       const v = validate(data, body.name, Number(body.number));
       if (v.error) {
         const held = data.picks.find(p => p.number === Number(body.number));
@@ -87,6 +89,12 @@ export default async (req) => {
 
     /* everything past here is coach-only */
     if (!pinOk(data, body.pin)) return reply({ error: 'That PIN did not match.' }, 401);
+
+    if (action === 'lock') {
+      data.locked = !!body.locked;
+      await write(data);
+      return reply({ ok: true, roster: board(data) });
+    }
 
     if (action === 'edit') {
       const current = Number(body.number);
